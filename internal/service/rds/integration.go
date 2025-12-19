@@ -376,7 +376,7 @@ func waitIntegrationCreated(ctx context.Context, conn *rds.Client, arn string, t
 
 func waitIntegrationUpdated(ctx context.Context, conn *rds.Client, arn string, timeout time.Duration) (*awstypes.Integration, error) {
 	stateConf := &sdkretry.StateChangeConf{
-		Pending: []string{integrationStatusModifying},
+		Pending: []string{integrationStatusModifying, integrationStatusSyncing},
 		Target:  []string{integrationStatusActive},
 		Refresh: statusIntegration(ctx, conn, arn),
 		Timeout: timeout,
