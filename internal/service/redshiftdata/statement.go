@@ -242,8 +242,8 @@ func waitStatementFinished(ctx context.Context, conn *redshiftdata.Client, id st
 		Target:     enum.Slice(types.StatusStringFinished),
 		Refresh:    statusStatement(conn, id),
 		Timeout:    timeout,
-		MinTimeout: 10 * time.Second,
-		Delay:      30 * time.Second,
+		MinTimeout: 2 * time.Second,
+		Delay:      2 * time.Second,
 	}
 
 	outputRaw, err := stateConf.WaitForStateContext(ctx)
