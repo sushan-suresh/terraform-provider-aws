@@ -200,6 +200,17 @@ func (r *integrationResource) Read(ctx context.Context, request resource.ReadReq
 		return
 	}
 
+	// If the integration is in a transitional state, wait for it to settle.
+	if string(output.Status) == integrationStatusModifying || string(output.Status) == integrationStatusCreating {
+		output, err = waitIntegrationReadReady(ctx, conn, data.ID.ValueString(), 60*time.Minute)
+
+		if err != nil {
+			response.Diagnostics.AddError(fmt.Sprintf("waiting for RDS Integration (%s) to become ready", data.ID.ValueString()), err.Error())
+
+			return
+		}
+	}
+
 	prevAdditionalEncryptionContext := data.AdditionalEncryptionContext
 
 	// Set attributes for import.
@@ -377,6 +388,25 @@ func waitIntegrationCreated(ctx context.Context, conn *rds.Client, arn string, t
 func waitIntegrationUpdated(ctx context.Context, conn *rds.Client, arn string, timeout time.Duration) (*awstypes.Integration, error) {
 	stateConf := &sdkretry.StateChangeConf{
 		Pending: []string{integrationStatusModifying, integrationStatusSyncing},
+		Target:  []string{integrationStatusActive, integrationStatusNeedsAttention},
+		Refresh: statusIntegration(ctx, conn, arn),
+		Timeout: timeout,
+	}
+
+	outputRaw, err := stateConf.WaitForStateContext(ctx)
+
+	if output, ok := outputRaw.(*awstypes.Integration); ok {
+		tfresource.SetLastError(err, errors.Join(tfslices.ApplyToAll(output.Errors, integrationError)...))
+
+		return output, err
+	}
+
+	return nil, err
+}
+
+func waitIntegrationReadReady(ctx context.Context, conn *rds.Client, arn string, timeout time.Duration) (*awstypes.Integration, error) {
+	stateConf := &sdkretry.StateChangeConf{
+		Pending: []string{integrationStatusCreating, integrationStatusModifying},
 		Target:  []string{integrationStatusActive, integrationStatusNeedsAttention},
 		Refresh: statusIntegration(ctx, conn, arn),
 		Timeout: timeout,
