@@ -43,7 +43,7 @@ func newIntegrationResource(_ context.Context) (resource.ResourceWithConfigure, 
 	r := &integrationResource{}
 
 	r.SetDefaultCreateTimeout(60 * time.Minute)
-	r.SetDefaultUpdateTimeout(30 * time.Minute)
+	r.SetDefaultUpdateTimeout(60 * time.Minute)
 	r.SetDefaultDeleteTimeout(30 * time.Minute)
 
 	return r, nil
